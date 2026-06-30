@@ -32,7 +32,7 @@ export default async function VisitorDeskPage() {
     <PageHeader eyebrow="Front desk" title="Visitor registration" description="Register an arrival and send an approval request directly to the selected host." action={<LiveRefresh/>}/>
     <div className="grid items-start gap-6 xl:grid-cols-[1.05fr_.95fr]">
       <section className="panel">
-        <div className="panel-header"><div><h2 className="panel-title">New visitor</h2><p className="panel-subtitle">Fields marked with * are required</p></div><span className="metric-icon bg-teal-50 text-teal-700"><Icon name="visitor" className="size-[18px]"/></span></div>
+        <div className="panel-header"><div><h2 className="panel-title">New visitor</h2><p className="panel-subtitle">Fields marked with * are required</p></div><span className="metric-icon text-teal-700"><Icon name="visitor" className="size-[18px]"/></span></div>
         <ActionForm action={registerVisitorAction} className="grid gap-4 p-5 sm:grid-cols-2">
           <label className="field"><span>Full name *</span><input name="fullName" required placeholder="Visitor’s full name"/></label>
           <label className="field"><span>Phone number *</span><input name="phone" required minLength={7} placeholder="Contact number"/></label>
