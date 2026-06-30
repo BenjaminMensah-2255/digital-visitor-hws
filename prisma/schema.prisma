@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SYSTEM_ADMIN
+  COMPANY_ADMIN
+  RECEPTION
+  STAFF
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAIT
+}
+
+enum VisitStatus {
+  EXPECTED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+model Company {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  email       String?
+  phone       String?
+  address     String?
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  users       User[]
+  staff       StaffProfile[]
+  visitors    Visitor[]
+  visits      Visit[]
+  attendances Attendance[]
+  auditLogs   AuditLog[]
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean       @default(true)
+  companyId    String?
+  company      Company?      @relation(fields: [companyId], references: [id])
+  staffProfile StaffProfile?
+  sessions     Session[]
+  auditLogs    AuditLog[]    @relation("AuditActor")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([companyId, role, active])
+}
+
+model StaffProfile {
+  id           String       @id @default(cuid())
+  userId       String       @unique
+  companyId    String
+  name         String
+  email        String
+  phone        String?
+  department   String
+  active       Boolean      @default(true)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      Company      @relation(fields: [companyId], references: [id])
+  hostedVisits Visit[]      @relation("VisitHost")
+  attendances  Attendance[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([companyId, email])
+  @@index([companyId, active])
+}
+
+model Visitor {
+  id        String   @id @default(cuid())
+  companyId String
+  fullName  String
+  phone     String
+  email     String?
+  idType    String?
+  idNumber  String?
+  company   Company  @relation(fields: [companyId], references: [id])
+  visits    Visit[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, fullName])
+}
+
+model Visit {
+  id              String         @id @default(cuid())
+  companyId       String
+  visitorId       String
+  hostStaffId     String
+  purpose         String
+  arrivalTime     DateTime
+  approvalStatus  ApprovalStatus @default(PENDING)
+  status          VisitStatus    @default(EXPECTED)
+  decisionTime    DateTime?
+  responseMessage String?
+  checkInTime     DateTime?
+  checkOutTime    DateTime?
+  company         Company        @relation(fields: [companyId], references: [id])
+  visitor         Visitor        @relation(fields: [visitorId], references: [id])
+  hostStaff       StaffProfile   @relation("VisitHost", fields: [hostStaffId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([companyId, arrivalTime])
+  @@index([companyId, approvalStatus])
+  @@index([hostStaffId, approvalStatus])
+}
+
+model Attendance {
+  id         String       @id @default(cuid())
+  companyId  String
+  staffId    String
+  date       DateTime     @db.Date
+  loginTime  DateTime
+  logoutTime DateTime?
+  company    Company      @relation(fields: [companyId], references: [id])
+  staff      StaffProfile @relation(fields: [staffId], references: [id])
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([staffId, date])
+  @@index([companyId, date])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  companyId String?
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  company   Company? @relation(fields: [companyId], references: [id])
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+  @@index([actorId])
+}
